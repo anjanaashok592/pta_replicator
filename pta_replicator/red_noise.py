@@ -36,7 +36,7 @@ def extrap1d(interpolator):
 def create_fourier_design_matrix_red(toas: np.ndarray, nmodes: int = 30,
                                   Tspan: float = None, logf: bool = False,
                                   fmin: float = None, fmax: float = None,
-                                  pshift: bool = False, libstempo_convention: bool = False, modes: np.ndarray = None) -> tuple:
+                                  pshift: bool = False, libstempo_convention: bool = True, modes: np.ndarray = None) -> tuple:
     """
     Construct fourier design matrix from eq 11 of Lentati et al, 2013
 
@@ -105,7 +105,7 @@ def create_fourier_design_matrix_red(toas: np.ndarray, nmodes: int = 30,
 
 def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: float,
                   components: int = 30, seed: int = None,
-                  modes: np.ndarray = None, Tspan: float = None, libstempo_convention: bool = False):
+                  modes: np.ndarray = None, Tspan: float = None, libstempo_convention: bool = True):
     """Add red noise with P(f) = A^2 / (12 pi^2) (f * year)^-gamma,
     using `components` Fourier bases.
     Optionally take a pseudorandom-number-generator seed."""
