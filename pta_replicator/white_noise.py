@@ -47,7 +47,7 @@ def quantize_fast(times, flags=None, dt=1.0):
 def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
                           log10_equad: float = None,
                           flagid: str = 'f', flags: list = None,
-                          seed: int = None, tnequad: bool = False):
+                          seed: int = None, tnequad: bool = False, FACTOR=1.5420348502877987):
     """
     Add nominal TOA errors added by EQUAD, and then multiplied by an EFAC factor.
     Optionally take a pseudorandom-number-generator seed.
@@ -69,6 +69,8 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
     tnquad : bool
         Whether to add measurment noise as
         EFAC * (TOA error + EQUAD) [default] or EFAC * TOA error + EQUAD.
+    FACTOR : float
+        The factor by which to multiply the toa errors to scale the white noise.
     """
     equad_str = 'tnequad' if tnequad else 't2equad'
 
@@ -102,7 +104,7 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
         else:
             raise ValueError('ERROR: flags must be same length as efac and log10_equad')
 
-    dt = efacvec * psr.toas.get_errors().to('s') * np.random.randn(psr.toas.ntoas)
+    dt = efacvec * FACTOR * psr.toas.get_errors().to('s') * np.random.randn(psr.toas.ntoas) #multiply toa errors by FACTOR to scale white noise for tuning sensitivity curve
     if tnequad:
         dt += equadvec * np.random.randn(psr.toas.ntoas) * u.s
     else:
