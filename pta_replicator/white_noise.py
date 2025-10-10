@@ -47,7 +47,7 @@ def quantize_fast(times, flags=None, dt=1.0):
 def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
                           log10_equad: float = None,
                           flagid: str = 'f', flags: list = None,
-                          seed: int = None, tnequad: bool = False, FACTOR=1.5420348502877987):
+                          seed: int = None, tnequad: bool = False, FACTOR=1.8):
     """
     Add nominal TOA errors added by EQUAD, and then multiplied by an EFAC factor.
     Optionally take a pseudorandom-number-generator seed.
@@ -93,6 +93,8 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
         else:
             efacvec = np.ones(psr.toas.ntoas) * efac
             equadvec = np.ones(psr.toas.ntoas) * equad
+    #print("Available flag values:", np.unique([f[flagid] for f in psr.toas.table['flags'].data]))
+    #print("EFAC flag list:", flags)
 
     if (flags is not None and not np.isscalar(efac)) or (flags is not None and not np.isscalar(equad)):
         if len(efac) == len(flags) and len(equad) == len(flags):
@@ -104,26 +106,39 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
         else:
             raise ValueError('ERROR: flags must be same length as efac and log10_equad')
 
-    dt = efacvec * FACTOR * psr.toas.get_errors().to('s') * np.random.randn(psr.toas.ntoas) #multiply toa errors by FACTOR to scale white noise for tuning sensitivity curve
-    if tnequad:
-        dt += equadvec * np.random.randn(psr.toas.ntoas) * u.s
-    else:
-        dt += efacvec * equadvec * np.random.randn(psr.toas.ntoas) * u.s
-        
-    # update the added_signals dictionary
+    ###OLD WAY###
+    #dt = efacvec * FACTOR * psr.toas.get_errors().to('s') * np.random.randn(psr.toas.ntoas) #multiply toa errors by FACTOR to scale white noise for tuning sensitivity curve
+    # if tnequad:
+    #     dt += equadvec * np.random.randn(psr.toas.ntoas) * u.s
+    # else:
+    #     dt += efacvec * equadvec * np.random.randn(psr.toas.ntoas) * u.s
+
+    ###NEW WAY###
+    equadvec = equadvec * u.s  
+    toaerrs = efacvec * psr.toas.get_errors().to(u.s) 
+    total_sigma = np.sqrt(FACTOR * toaerrs**2 + equadvec**2) #like in hasasia's make_corr while tuning
+    dt = total_sigma * np.random.randn(psr.toas.ntoas)
+
     if flags is None:
+        #print("flags is none")
         psr.update_added_signals('{}_measurement_noise'.format(psr.name),
                                  {'efac': efac, 'log10_' + equad_str: log10_equad},
                                  dt)
     else:
+        #print("flags not none")
         # update added_signals_time dictionary first
         psr.update_added_signals('{}_measurement_noise'.format(psr.name), {}, dt)
+        #print("dt after flags not none=",dt[10])
         # next update added_signals dictionary
         for i, flag in enumerate(flags):
             psr.update_added_signals('{}_{}_measurement_noise'.format(psr.name, flag),
                                      {'efac': efac[i], 'log10_' + equad_str: log10_equad[i]})
+        #print("dt after update added signals=",dt[10])
+
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    psr.toaerrs = dt
+   # print("new_toaerrs=",new_toaerrs)
     psr.update_residuals()
 
 
