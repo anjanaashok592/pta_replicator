@@ -95,7 +95,7 @@ class SimulatedPulsar:
         """
         return Pulsar(self.toas, self.model, ephem=ephem, timing_package='pint')
     
-    def generate_daily_avg_toas(self, ideal=False):
+    def generate_daily_avg_toas(self, FACTOR, ideal=False):
         """
         Compute daily averaged TOAs
         """
@@ -122,15 +122,17 @@ class SimulatedPulsar:
             U, ecorrvec = self.model.ecorr_basis_weight_pair(mytoas)
             ecorr = np.dot(U*ecorrvec, np.ones(U.shape[1]))
 
-            avetoas, aveerr, averes = compute_daily_ave(mytoas.get_mjds().to(u.s).value,
-                                                    myresiduals, err, ecorr=ecorr, dt=secperday)
+            avetoas, aveerr, averes = compute_daily_ave(mytoas.get_mjds().to(u.s).value, myresiduals, err, ecorr=ecorr, dt=secperday)
 
             if toas2 is None:
+                print('toas2 is not none')
                 toas2 = toa.get_TOAs_array(avetoas/secperday, obs=mytoas['obs'][0], flags={'f': flags[0]},
-                                   errors=aveerr*1e6, planets=True, ephem='DE440')
+                                   errors=FACTOR*aveerr*1e6, planets=True, ephem='DE440')
             else:
+                print('toas2 is none')
                 toas2.merge(toa.get_TOAs_array(avetoas/secperday, obs=mytoas['obs'][0], flags={'f': f},
-                                       errors=aveerr*1e6, planets=True, ephem='DE440'))
+                                       errors=FACTOR*aveerr*1e6, planets=True, ephem='DE440'))
+                                       
             res2 = np.append(res2, averes)
 
         self.toas = toas2
